@@ -1,2 +1,2 @@
 # ros_yolo
-An example ROS package to send image data to a Keras model.
+An example ROS package to send image data to a Keras yolo model.

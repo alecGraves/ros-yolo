@@ -44,3 +44,7 @@ python -m pip install \
 # Usage
 This package is designed to get camera data from a robot as a jpeg buffer in a multiarray then compute box predictions.
 
+1. start encoding and publishing images with ```rosrun ros_yolo encoder```
+
+2. start yolo with ```rosrun ros_yolo yolo.py```
+

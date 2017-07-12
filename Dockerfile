@@ -20,7 +20,7 @@ RUN python -m pip install \
     PyYAML==3.12 \
     h5py==2.7.0 \
     keras==2.0.6 \
-    tensorflow-gpu==1.2.1
+    tensorflow==1.2.1
 
 
 

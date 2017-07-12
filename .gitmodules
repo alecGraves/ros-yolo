@@ -1,0 +1,3 @@
+[submodule "YAD2K"]
+	path = YAD2K
+	url = https://github.com/shadySource/YAD2K.git

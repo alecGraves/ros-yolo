@@ -19,18 +19,18 @@ from yad2k.models.keras_yolo import yolo_body, yolo_eval, yolo_head
 from subscriber import videosub
 
 filepath = os.path.dirname(os.path.abspath(__file__))
-filepath = os.path.abspath(os.path.join(filepath, '..', '..', 'YAD2K', 'model_data'))
+filepath = os.path.abspath(os.path.join(filepath, '..', '..', 'YAD2K'))
+
+model_path = os.path.join(filepath, 'trained_stage_2_best.h5')
+anchors_path = os.path.join(filepath, 'model_data', 'yolo_anchors.txt')
+classes_path = os.path.join(filepath, 'model_data', 'aerial_classes.txt')
+
 
 class yolo(object):
     '''
     YOLOv2 class integrated with YAD2K and ROS
     '''
-    def __init__(self, score_threshold=0.3, iou_threshold=0.6, max_detections=15):
-        # Set up paths.
-        model_path = os.path.join(filepath, 'trained_body.h5')
-        anchors_path = os.path.join(filepath, 'yolo_anchors.txt')
-        classes_path = os.path.join(filepath, 'aerial_classes.txt')
-
+    def __init__(self, score_threshold=0.3, iou_threshold=0.6, max_detections=15):  
         # Load classes and anchors.
         with open(classes_path) as f:
                 self.class_names = f.readlines()
@@ -62,7 +62,7 @@ class yolo(object):
         print('yolo object created')
 
     def pred(self, image_s):
-        # Make predictions for one or more images, in (batch, height, width, channel) format
+        # Make predictions for one image, in (1, height, width, channel) format
         assert len(image_s.shape) == 4 # image must have 4 dims ready to be sent into the graph
         out_boxes, out_scores, out_classes = self.sess.run(
                 [self.boxes, self.scores, self.classes],

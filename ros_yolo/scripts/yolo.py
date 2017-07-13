@@ -139,7 +139,7 @@ if __name__ == '__main__':
         '-m',
         '--model_path',
         help='path to model file, defaults to YAD2K/trained_stage_2_best.h5',
-        default=os.path.join(filepath, 'trained_stage_2_best.h5'))
+        default=os.path.join(filepath, 'model_data', 'retrained.h5'))
 
     args = argparser.parse_args()
 

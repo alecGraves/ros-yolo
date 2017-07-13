@@ -1,8 +1,8 @@
-/*
-created by:
+/***********************************
+Created by:
     https://github.com/Appleman8977
     https://github.com/stoplime
-*/
+************************************/
 #include "ros/ros.h"
 #include "std_msgs/UInt8MultiArray.h"
 #include "std_msgs/MultiArrayDimension.h"

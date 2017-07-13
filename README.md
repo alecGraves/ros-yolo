@@ -33,12 +33,7 @@ python -m pip install \
     pillow==4.2.1 \
     h5py==2.7.0 \
     keras==2.0.6 \
-<<<<<<< HEAD
     tensorflow-gpu==1.2.1
-=======
-    tensorflow-gpu==1.2.1 # for GPU support (highly recommended)
-    # tensorflow==1.2.1 # for CPU only
->>>>>>> 8e512e8a0e7d24c2814399f943fde1d5cab9fda4
 ```
 6. [install CUDA](https://gist.github.com/shadySource/c0f1223d653b6488fde748dcac42d232#3-gpu-if-you-want-to-use-gpu) for GPU support (highly reccomended)
 

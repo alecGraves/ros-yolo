@@ -8,7 +8,7 @@ import rospy
 import cv2
 import tensorflow as tf
 import numpy as np
-from keras.models import load_model
+from keras.layers import Input
 from keras import backend as K
 import argparse
 
@@ -23,7 +23,7 @@ class yolo(object):
     '''
     YOLOv2 class integrated with YAD2K and ROS
     '''
-    def __init__(self, anchors_path, classes_path, model_path, score_threshold=0.3, iou_threshold=0.6, max_detections=15):  
+    def __init__(self, anchors_path, classes_path, weights_path, score_threshold=0.3, iou_threshold=0.6, max_detections=15):  
         # Load classes and anchors.
         with open(classes_path) as f:
                 self.class_names = f.readlines()
@@ -37,7 +37,11 @@ class yolo(object):
         # Load model and set up computation graph.
         self.sess = K.get_session()
 
-        self.yolo_body = load_model(model_path)
+        self.image_input = Input(shape=(None, None, 3))
+
+        self.yolo_body = yolo_body(self.image_input, len(self.anchors), len(self.class_names))
+
+        self.yolo_body.load_weights(weights_path)
 
         self.yolo_body.summary()
 
@@ -77,11 +81,11 @@ class yolo(object):
 def _main(args):
     anchors_path= os.path.expanduser(args.anchors_path)
     classes_path= os.path.expanduser(args.classes_path)
-    model_path = os.path.expanduser(args.model_path)
+    weights_path = os.path.expanduser(args.weights_path)
 
     rospy.init_node("yoloNode")
 
-    yo = yolo(anchors_path, classes_path, model_path, .4, .4, 100)
+    yo = yolo(anchors_path, classes_path, weights_path, .4, .4, 100)
 
     vid1 = videosub(args.first_topic)
     if not (args.second_topic is None):
@@ -136,10 +140,10 @@ if __name__ == '__main__':
         default=os.path.join(filepath, 'model_data', 'yolo_anchors.txt'))
     
     argparser.add_argument(
-        '-m',
-        '--model_path',
+        '-w',
+        '--weights_path',
         help='path to model file, defaults to YAD2K/trained_stage_2_best.h5',
-        default=os.path.join(filepath, 'model_data', 'retrained.h5'))
+        default=os.path.join(filepath, 'trained_stage_2_best.h5'))
 
     args = argparser.parse_args()
 

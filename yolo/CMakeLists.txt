@@ -9,10 +9,13 @@ project(yolo)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   cv_bridge
+  image_transport
   roscpp
   rospy
   std_msgs
 )
+
+find_package(OpenCV REQUIRED)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -119,6 +122,7 @@ catkin_package(
 include_directories(
 # include
   ${catkin_INCLUDE_DIRS}
+  ${OPENCV_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
@@ -134,7 +138,8 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-add_executable(encoder src/imageEncoder.cpp)
+add_executable(encoder src/image_encoder.cpp)
+add_executable(compressed_repeater src/compressed_image_repeater.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -145,10 +150,16 @@ add_executable(encoder src/imageEncoder.cpp)
 ## Add cmake target dependencies of the executable
 ## same as for the library above
 add_dependencies(encoder ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(compressed_repeater ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(encoder
   ${catkin_LIBRARIES}
+)
+target_link_libraries(compressed_repeater
+  ${catkin_LIBRARIES}
+  ${OpenCV_LIBRARIES}
 )
 
 #############

@@ -1,3 +1,6 @@
+# vscode
+.vscode/
+
 # weight files
 *.h5
 

@@ -8,10 +8,11 @@ import numpy as np
 import cv2
 
 class videosub():
-    def __init__(self, topic):
+    def __init__(self, topic, img_shape=(416, 416)):
         rospy.Subscriber(topic, UInt8MultiArray, self.callback)
+        self.shape = img_shape
         self.topic = topic
-        self.image = np.ndarray((480, 640, 3))
+        self.image = None
         self.newImgAvailable = False
         print('Subscriber object created, listening to', topic)
 
@@ -25,7 +26,7 @@ class videosub():
 
     def getProcessedImage(self):
         self.newImgAvailable = False
-        return np.expand_dims(np.array(cv2.resize(self.image, (416, 416)), dtype='float32')*0.003921568, axis=0)
+        return np.expand_dims(np.array(cv2.resize(self.image, self.shape), dtype='float32')*0.003921568, axis=0)
 
 if __name__ == '__main__':
     rospy.init_node("Testnode")

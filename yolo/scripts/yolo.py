@@ -35,14 +35,12 @@ class yolo(object):
             self.anchors = [float(x) for x in self.anchors.split(',')]
             self.anchors = np.array(self.anchors).reshape(-1, 2)
 
-        # Load model and set up computation graph.
-        self.sess = K.get_session()
-
         self.image_input = Input(shape=(None, None, 3))
 
         yolo_json_file = open(json_path, 'r')
         yolo_json = yolo_json_file.read()
         yolo_json_file.close()
+
         self.yolo_model = model_from_json(yolo_json, CUSTOM_DICT)
         
         self.yolo_model.load_weights(weights_path)
@@ -137,7 +135,7 @@ if __name__ == '__main__':
         '-a',
         '--anchors_path',
         help='(optional)path to anchors file, defaults to YAD2K/model_data/yolo_anchors.txt',
-        default=os.path.join(filepath, 'model_data', 'my_anchors.txt'))
+        default=os.path.join(filepath, 'model_data', 'yolo_anchors.txt'))
     
     argparser.add_argument(
         '-w',
@@ -148,7 +146,7 @@ if __name__ == '__main__':
     argparser.add_argument(
         '-j',
         '--json_path',
-        help='(optional) path to model json file, defaults to YAD2K/trained_stage_2_best.h5',
+        help='(optional) path to model json file, defaults to YAD2K/model_data/yolo.json',
         default=os.path.join(filepath, 'model_data', 'yolo.json'))
 
     args = argparser.parse_args()

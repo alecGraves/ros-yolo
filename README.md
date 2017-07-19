@@ -21,13 +21,6 @@ sudo apt install python-pip python3-pip
 
 5. Install python packages:
 ```
-python3 -m pip install \
-    numpy==1.11.0 \
-    pillow==4.2.1 \
-    h5py==2.7.0 \
-    keras==2.0.6 \
-    tensorflow-gpu==1.2.1
-
 python -m pip install \
     numpy==1.11.0 \
     pillow==4.2.1 \
@@ -35,9 +28,9 @@ python -m pip install \
     keras==2.0.6 \
     tensorflow-gpu==1.2.1
 ```
-6. [install CUDA](https://gist.github.com/shadySource/c0f1223d653b6488fde748dcac42d232#3-gpu-if-you-want-to-use-gpu) for GPU support (highly reccomended)
+6. [install CUDA](https://gist.github.com/shadySource/c0f1223d653b6488fde748dcac42d232#3-gpu-if-you-want-to-use-gpu) for GPU support (highly reccomended if you have a gpu)
 
-7. Create a model with YAD2K and a combination of python3 and python:
+7. Create a model with YAD2K using python:
     1. create a custom classes file
         1. see ```YAD2K/model_data/aerial_classes.txt``` for inspiration.
     2. Download the .weights and .cfg of the darknet model you want to use into YAD2K
@@ -45,7 +38,7 @@ python -m pip install \
     3. Make a keras yolo model.
         1. Ex.
         ```
-        python3 yad2k.py -flcl yolo.cfg yolo.weights model_data/yolo.h5
+        python yad2k.py -flcl yolo.cfg yolo.weights model_data/yolo.h5
         ```
     4. Use retrain_yolo.py to fine-tune the pretrained model for a new dataset.
         1. ```python retrain_yolo.py --help``` for some info about args

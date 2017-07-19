@@ -15,6 +15,7 @@ from keras.models import model_from_json
 from keras import backend as K
 from std_msgs.msg import String
 from std_msgs.msg import Float32MultiArray
+from std_msgs.msg import MultiArrayDimension
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
 
@@ -45,11 +46,11 @@ class yolo(object):
 
         self.image_input = Input(shape=(None, None, 3))
 
-        yolo_json_file = open(json_path, 'r')
-        yolo_json = yolo_json_file.read()
-        yolo_json_file.close()
+        # yolo_json_file = open(json_path, 'r') # no longer loading model directly, using create_model
+        # yolo_json = yolo_json_file.read()
+        # yolo_json_file.close()
 
-        self.yolo_model, garbage = create_model(self.anchors, self.class_names, False, 0)
+        self.yolo_model, garbage = create_model(self.anchors, self.class_names, False, 0, json_path)
         
         self.yolo_model.load_weights(weights_path)
 
@@ -70,17 +71,19 @@ class yolo(object):
 
         proc = yolo_head_np(features, self.anchors, len(self.class_names))
 
-        out_boxes, out_scores, out_classes = yolo_eval(proc, (640, 480), max_boxes=self.max_boxes,
+        out_boxes, out_scores, out_classes = yolo_eval(proc, display_shape, max_boxes=self.max_boxes,
             score_threshold=self.score_threshold, iou_threshold=self.iou_threshold)
 
         return out_boxes, out_scores, out_classes
 
 def draw(out_boxes, out_scores, out_classes, image, name, class_names, display=True):
     if len(out_boxes) != 0:
+        np.swapaxes(image, 0, 1) # opencv convention is to access image as (row, column)
         image = draw_boxes(image, out_boxes, out_classes, class_names, scores=out_scores, rectify=False)
+        np.swapaxes(image, 0, 1)
     if display:
         cv2.imshow(name, image)
-        cv2.waitKey(10)
+        cv2.waitKey(3)
     return image
 
 def to_json(img_shape, boxes, scores, classes):
@@ -92,14 +95,43 @@ def to_json(img_shape, boxes, scores, classes):
     # return: json string
     json_list = []
     for i in range(len(boxes)):
-        center_x = (boxes[i][1] + boxes[i][3])/2/img_shape[0]
-        center_y = (boxes[i][0] + boxes[i][2])/2/img_shape[1]
+        center_x = (boxes[i][1] + boxes[i][3])/2/img_shape[1]
+        center_y = (boxes[i][0] + boxes[i][2])/2/img_shape[0]
         confidence = scores[i]
         _class = classes[i]
         json_list.append([int(_class), float(center_x), float(center_y), float(confidence)])
 
     json_list = json.dumps(json_list)
     return json_list
+
+def to_multiarray(img_shape, boxes, scores, classes):
+    # image_shape : the shape of the image used by yolo
+    # boxes: An `array` of shape (num_boxes, 4) containing box corners as
+    #     (y_min, x_min, y_max, x_max).
+    # `scores`: A `list` of scores for each box.
+    # classes: A `list` of indicies into `class_names`.
+    # return: multiarray
+    data = []
+    for i in range(len(boxes)):
+        y_min = boxes[i][0]/img_shape[0]
+        x_min = boxes[i][1]/img_shape[1]
+        y_max = boxes[i][2]/img_shape[0]
+        x_max = boxes[i][3]/img_shape[1]
+        confidence = scores[i]
+        _class = classes[i]
+        data.append(float(_class))
+        data.append(float(y_min))
+        data.append(float(x_min))
+        data.append(float(y_max))
+        data.append(float(x_max))
+        data.append(float(confidence))
+    message = Float32MultiArray()
+    message.layout.dim.append(MultiArrayDimension("boxes", len(boxes), 1))
+    message.layout.dim.append(MultiArrayDimension("box_data", 6, 1))
+    message.data = data
+
+    return message
+
 
 def _main(args):
     anchors_path= os.path.expanduser(args.anchors_path)
@@ -120,12 +152,12 @@ def _main(args):
 
     vid1 = videosub(args.first_topic, (96, 96))
     boxes_pub_1 = rospy.Publisher("/yolo/first/boxes", box_type, queue_size=10)
-    proc_image_pub_1 = rospy.Publisher("/yolo/first/proc_image", Image)
+    proc_image_pub_1 = rospy.Publisher("/yolo/first/proc_image", Image, queue_size=2)
 
     if args.second_topic is not None:
         vid2 = videosub(args.second_topic)
         boxes_pub_2 = rospy.Publisher("/yolo/second/boxes", box_type, queue_size=10)
-        proc_image_pub_2 = rospy.Publisher("/yolo/second/proc_image", Image)
+        proc_image_pub_2 = rospy.Publisher("/yolo/second/proc_image", Image, queue_size=2)
 
     
     rate = rospy.Rate(15)
@@ -135,14 +167,14 @@ def _main(args):
         if vid1.newImgAvailable:
             image, image_data = vid1.getProcessedImage()
             boxes, scores, classes = yo.pred(image_data, image.shape[0:2])
-
+            print(image.shape[:2])
             if args.display: #display the image
                 processed_image = draw(boxes, scores, classes, image, vid1.topic, yo.class_names) # Display
 
             if args.mode.lower()=='json': # message is JSON
                 message = to_json(image.shape[0:2], boxes, scores, classes)
             else: # message is multiarray
-                pass
+                message = to_multiarray(image.shape[0:2], boxes, scores, classes)
             boxes_pub_1.publish(message)
 
             if args.publish: # Publish the processed image
@@ -164,7 +196,7 @@ def _main(args):
             if args.mode.lower()=='json':
                 message = to_json(image.shape[0:2], boxes, scores, classes)
             else: # multiarray
-                pass
+                message = to_multiarray(image.shape[0:2], boxes, scores, classes)
             boxes_pub_2.publish(message)
 
             if args.publish: # Publish the processed image

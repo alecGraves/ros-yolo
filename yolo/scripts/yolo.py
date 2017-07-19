@@ -16,7 +16,8 @@ import argparse
 import context
 
 from yad2k.utils.draw_boxes import draw_boxes
-from yad2k.models.keras_yolo import CUSTOM_DICT, yolo_head_np, yolo_eval
+from retrain_yolo import create_model
+from yad2k.models.keras_yolo import yolo_head_np, yolo_eval
 from subscriber import videosub
 
 
@@ -41,7 +42,7 @@ class yolo(object):
         yolo_json = yolo_json_file.read()
         yolo_json_file.close()
 
-        self.yolo_model = model_from_json(yolo_json, CUSTOM_DICT)
+        self.yolo_model, garbage = create_model(self.anchors, self.class_names, False, 0)
         
         self.yolo_model.load_weights(weights_path)
 
@@ -53,7 +54,7 @@ class yolo(object):
 
         print('yolo object created')
 
-    def pred(self, image_s):
+    def pred(self, image_s, display_shape=(640, 480)):
         # Make predictions for images in (num_images, height, width, channel) format
         assert len(image_s.shape) == 4 # image must have 4 dims ready to be sent into the graph
         # TODO allow multiple images at once.
@@ -62,16 +63,16 @@ class yolo(object):
 
         proc = yolo_head_np(features, self.anchors, len(self.class_names))
 
-        out_boxes, out_scores, out_classes = yolo_eval(proc, image_s.shape[1:3], max_boxes=self.max_boxes,
+        out_boxes, out_scores, out_classes = yolo_eval(proc, (640, 480), max_boxes=self.max_boxes,
             score_threshold=self.score_threshold, iou_threshold=self.iou_threshold)
 
         return out_boxes, out_scores, out_classes
 
     def display(self, out_boxes, out_scores, out_classes, image, name):
         if len(out_boxes) == 0:
-            cv2.imshow(name, np.floor(image * 255 + 0.5).astype('uint8'))
+            cv2.imshow(name, image)
         else:
-            image = draw_boxes(image, out_boxes, out_classes, self.class_names, scores=out_scores)
+            image = draw_boxes(image, out_boxes, out_classes, self.class_names, scores=out_scores, rectify=False)
             cv2.imshow(name, image)
         cv2.waitKey(10)
 
@@ -94,13 +95,13 @@ def _main(args):
     while not rospy.is_shutdown():
         # Grab new images from the subscribers
         if vid1.newImgAvailable:
-            image = vid1.getProcessedImage()
-            boxes, scores, classes = yo.pred(image)
-            yo.display(boxes, scores, classes, image[0], vid1.topic) # Display
+            image, image_data = vid1.getProcessedImage()
+            boxes, scores, classes = yo.pred(image_data)
+            yo.display(boxes, scores, classes, image, vid1.topic) # Display
         if args.second_topic is not None and vid2.newImgAvailable:
-            image = vid2.getProcessedImage()
-            boxes, scores, classes = yo.pred(image)
-            yo.display(boxes, scores, classes, image[1], vid2.topic)
+            image, image_data = vid2.getProcessedImage()
+            boxes, scores, classes = yo.pred(image_data)
+            yo.display(boxes, scores, classes, image, vid2.topic)
 
         rate.sleep()
 

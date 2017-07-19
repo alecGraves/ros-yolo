@@ -4,6 +4,7 @@ from __future__ import print_function
 
 import os
 import sys
+import json
 import rospy
 import cv2
 import tensorflow as tf
@@ -14,6 +15,7 @@ import argparse
 
 import context
 
+from std_msgs.msg import String
 from yad2k.utils.draw_boxes import draw_boxes
 from yad2k.models.keras_yolo import yolo_body, yolo_eval, yolo_head
 from subscriber import videosub
@@ -78,6 +80,24 @@ class yolo(object):
             cv2.imshow(name, image)
         cv2.waitKey(10)
 
+    def to_json(img_shape, boxes, scores, classes):
+        # image_shape : the shape of the image used by yolo
+        # boxes: An `array` of shape (num_boxes, 4) containing box corners as
+        #     (y_min, x_min, y_max, x_max).
+        # `scores`: A `list` of scores for each box.
+        # classes: A `list` of indicies into `class_names`.
+        # return: json string
+        json_list = []
+        for i in range(len(boxes)):
+            center_x = (boxes[i][1] + boxes[i][3])/2/img_shape[0]
+            center_y = (boxes[i][0] + boxes[i][2])/2/img_shape[1]
+            probability = scores[i]
+            _class = classes[i]
+            json_list.append([_class, center_x, center_y, probability])
+
+        json_list = json.dumps(json_list)
+        return json_list
+
 def _main(args):
     anchors_path= os.path.expanduser(args.anchors_path)
     classes_path= os.path.expanduser(args.classes_path)
@@ -87,8 +107,14 @@ def _main(args):
 
     yo = yolo(anchors_path, classes_path, weights_path, .4, .4, 100)
 
+    if args.mode.lower() == 'json':
+        pub1 = rospy.Publisher('yolo/boxes1', String, queue_size=10)
+        # TODO: second publisher for different camera?
+    else:
+        pass # TODO multiarray publisher
+
     vid1 = videosub(args.first_topic)
-    if not (args.second_topic is None):
+    if args.second_topic is not None:
         vid2 = videosub(args.second_topic)
 
     rate = rospy.Rate(15)
@@ -98,18 +124,30 @@ def _main(args):
         if vid1.newImgAvailable:
             image = vid1.getProcessedImage()
             boxes, scores, classes = yo.pred(image)
-            yo.display(boxes, scores, classes, image, vid1.topic) # Display
-        if (not (args.second_topic is None)) and vid2.newImgAvailable:
+            if args.display:
+                yo.display(boxes, scores, classes, image, vid1.topic) # Display
+            if args.mode == 'json':
+                json_boxes = to_json(image.shape, boxes, scores, classes)
+            else:
+                pass # TODO use multiarray
+            pub1.publish(json_boxes)
+
+        if args.second_topic is not None and vid2.newImgAvailable:
             image = vid2.getProcessedImage()
             boxes, scores, classes = yo.pred(image)
-            yo.display(boxes, scores, classes, image, vid2.topic)
+            if args.display:
+                yo.display(boxes, scores, classes, image, vid2.topic)
+            if args.mode == 'json':
+                json_boxes = to_json(image.shape, boxes, scores, classes)
+            else:
+                pass # TODO use multiarray
 
         rate.sleep()
 
 if __name__ == '__main__':
     # Configure default paths
-    filepath = os.path.dirname(os.path.abspath(__file__))
-    filepath = os.path.abspath(os.path.join(filepath, '..', '..', 'YAD2K'))
+    yad2k_path = os.path.dirname(os.path.abspath(__file__))
+    yad2k_path = os.path.abspath(os.path.join(yad2k_path, '..', '..', 'YAD2K'))
     
     # Args
     argparser = argparse.ArgumentParser(
@@ -126,24 +164,42 @@ if __name__ == '__main__':
         '--second_topic',
         help='Second topic to subscribe to. Leave blank if None.',
         default=None)
+    
+    argparser.add_argument(
+        '-d',
+        '--display',
+        action='store_true',
+        help='use this flag to display an opencv image during computation')
+
+    argparser.add_argument(
+        '-m',
+        '--mode',
+        help='mode: "json" for json publisher, else: multiarray publisher. Defaults to json.',
+        default='json')
 
     argparser.add_argument(
         '-c',
         '--classes_path',
         help='path to classes file, defaults to YAD2K/model_data/aerial_classe.txt',
-        default=os.path.join(filepath, 'model_data', 'aerial_classes.txt'))
+        default=os.path.join(yad2k_path, 'model_data', 'aerial_classes.txt'))
 
     argparser.add_argument(
         '-a',
         '--anchors_path',
         help='path to anchors file, defaults to YAD2K/model_data/yolo_anchors.txt',
-        default=os.path.join(filepath, 'model_data', 'yolo_anchors.txt'))
+        default=os.path.join(yad2k_path, 'model_data', 'yolo_anchors.txt'))
     
     argparser.add_argument(
         '-w',
         '--weights_path',
         help='path to model file, defaults to YAD2K/trained_stage_2_best.h5',
-        default=os.path.join(filepath, 'trained_stage_2_best.h5'))
+        default=os.path.join(yad2k_path, 'trained_stage_2_best.h5'))
+
+    argparser.add_argument(
+        '-mj',
+        '--model_json',
+        help='path to keras model json file, defaults to YAD2K/model_data/yolo.json',
+        default=os.path.join(yad2k_path, 'model_data', 'yolo.json'))
 
     args = argparser.parse_args()
 

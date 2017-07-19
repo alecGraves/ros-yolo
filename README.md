@@ -48,7 +48,7 @@ python -m pip install \
         python3 yad2k.py -flcl yolo.cfg yolo.weights model_data/yolo.h5
         ```
     4. Use retrain_yolo.py to fine-tune the pretrained model for a new dataset.
-        1. ```python3 retrain_yolo.py --help``` for some info about args
+        1. ```python retrain_yolo.py --help``` for some info about args
             1. ex. usage: 
             ```
             python retrain_yolo.py -d PATH/TO/my_dataset.npz -c PATH/TO/my_classes.txt

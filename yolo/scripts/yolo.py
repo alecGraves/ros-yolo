@@ -6,12 +6,14 @@ import os
 import sys
 import rospy
 import cv2
-import tensorflow as tf
+import json
+import argparse
 import numpy as np
+import tensorflow as tf
 from keras.layers import Input
 from keras.models import model_from_json
 from keras import backend as K
-import argparse
+from std_msgs.msg import String
 
 import context
 
@@ -25,8 +27,10 @@ class yolo(object):
     '''
     YOLOv2 class integrated with YAD2K and ROS
     '''
-    def __init__(self, json_path, anchors_path, classes_path, weights_path, score_threshold=0.3, iou_threshold=0.6, max_detections=15):  
+    def __init__(self, paths, score_threshold=0.3, iou_threshold=0.6, max_detections=15, build=True):  
         # Load classes and anchors.
+        json_path, anchors_path, classes_path, weights_path = paths
+
         with open(classes_path) as f:
                 self.class_names = f.readlines()
         self.class_names = [c.strip() for c in self.class_names]
@@ -68,13 +72,31 @@ class yolo(object):
 
         return out_boxes, out_scores, out_classes
 
-    def display(self, out_boxes, out_scores, out_classes, image, name):
-        if len(out_boxes) == 0:
-            cv2.imshow(name, image)
-        else:
-            image = draw_boxes(image, out_boxes, out_classes, self.class_names, scores=out_scores, rectify=False)
-            cv2.imshow(name, image)
-        cv2.waitKey(10)
+def display(out_boxes, out_scores, out_classes, image, name, class_names):
+    if len(out_boxes) == 0:
+        cv2.imshow(name, image)
+    else:
+        image = draw_boxes(image, out_boxes, out_classes, class_names, scores=out_scores, rectify=False)
+        cv2.imshow(name, image)
+    cv2.waitKey(10)
+
+def to_json(img_shape, boxes, scores, classes):
+    # image_shape : the shape of the image used by yolo
+    # boxes: An `array` of shape (num_boxes, 4) containing box corners as
+    #     (y_min, x_min, y_max, x_max).
+    # `scores`: A `list` of scores for each box.
+    # classes: A `list` of indicies into `class_names`.
+    # return: json string
+    json_list = []
+    for i in range(len(boxes)):
+        center_x = (boxes[i][1] + boxes[i][3])/2/img_shape[0]
+        center_y = (boxes[i][0] + boxes[i][2])/2/img_shape[1]
+        confidence = scores[i]
+        _class = classes[i]
+        json_list.append([int(_class), float(center_x), float(center_y), float(confidence)])
+
+    json_list = json.dumps(json_list)
+    return json_list
 
 def _main(args):
     anchors_path= os.path.expanduser(args.anchors_path)
@@ -84,9 +106,16 @@ def _main(args):
 
     rospy.init_node("yoloNode")
 
-    yo = yolo(json_path, anchors_path, classes_path, weights_path, .4, .4, 100)
+    if args.mode.lower() == 'json':
+        pub1 = rospy.Publisher(args.first_topic + "/boxes", String, queue_size=10)
+        if args.second_topic is not None:
+            pub2 = rospy.Publisher(args.second_topic + "/boxes", String, queue_size=10)
+    else:
+        pass #multiarray publishers
 
-    vid1 = videosub(args.first_topic)
+    yo = yolo((json_path, anchors_path, classes_path, weights_path), .4, .4, 100)
+
+    vid1 = videosub(args.first_topic, (96, 96))
     if args.second_topic is not None:
         vid2 = videosub(args.second_topic)
 
@@ -97,11 +126,16 @@ def _main(args):
         if vid1.newImgAvailable:
             image, image_data = vid1.getProcessedImage()
             boxes, scores, classes = yo.pred(image_data)
-            yo.display(boxes, scores, classes, image, vid1.topic) # Display
+            if args.display:
+                display(boxes, scores, classes, image, vid1.topic, yo.class_names) # Display
+            if args.mode.lower()=='json':
+                pub1.publish(to_json((640, 480), boxes, scores, classes))
+
         if args.second_topic is not None and vid2.newImgAvailable:
             image, image_data = vid2.getProcessedImage()
             boxes, scores, classes = yo.pred(image_data)
-            yo.display(boxes, scores, classes, image, vid2.topic)
+            if args.display:
+                yo.display(boxes, scores, classes, image, vid2.topic)
 
         rate.sleep()
 
@@ -125,6 +159,18 @@ if __name__ == '__main__':
         '--second_topic',
         help='(optional) Second topic to subscribe to. Leave blank if None.',
         default=None)
+
+    argparser.add_argument(
+        '-d',
+        '--display',
+        action='store_true',
+        help='use this flag to display an opencv image during computation')
+    
+    argparser.add_argument(
+        '-m',
+        '--mode',
+        help='mode: "json" for json publisher, else: multiarray publisher. Defaults to json.',
+        default='json')
 
     argparser.add_argument(
         '-c',

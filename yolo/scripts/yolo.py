@@ -78,9 +78,9 @@ class yolo(object):
 
 def draw(out_boxes, out_scores, out_classes, image, name, class_names, display=True):
     if len(out_boxes) != 0:
-        np.swapaxes(image, 0, 1) # opencv convention is to access image as (row, column)
+        # np.swapaxes(image, 0, 1) # opencv convention is to access image as (row, column)
         image = draw_boxes(image, out_boxes, out_classes, class_names, scores=out_scores, rectify=False)
-        np.swapaxes(image, 0, 1)
+        # np.swapaxes(image, 0, 1)
     if display:
         cv2.imshow(name, image)
         cv2.waitKey(3)
@@ -150,7 +150,7 @@ def _main(args):
 
     bridge = CvBridge()
 
-    vid1 = videosub(args.first_topic, (96, 96))
+    vid1 = videosub(args.first_topic)
     boxes_pub_1 = rospy.Publisher("/yolo/first/boxes", box_type, queue_size=10)
     proc_image_pub_1 = rospy.Publisher("/yolo/first/proc_image", Image, queue_size=2)
 
@@ -167,7 +167,6 @@ def _main(args):
         if vid1.newImgAvailable:
             image, image_data = vid1.getProcessedImage()
             boxes, scores, classes = yo.pred(image_data, image.shape[0:2])
-            print(image.shape[:2])
             if args.display: #display the image
                 processed_image = draw(boxes, scores, classes, image, vid1.topic, yo.class_names) # Display
 

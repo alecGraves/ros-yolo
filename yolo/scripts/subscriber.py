@@ -27,7 +27,7 @@ class videosub():
 
     def getProcessedImage(self):#note: swapaxes for the net, image stays in regular format
         self.newImgAvailable = False
-        return cv2.resize(self.image, self.display), np.expand_dims(np.swapaxes(np.array(cv2.resize(self.image, self.shape), dtype='float32')*0.003921568, 0, 1), axis=0)
+        return cv2.resize(self.image, self.display), np.expand_dims(np.array(cv2.resize(self.image, self.shape), dtype='float32')*0.003921568, axis=0)
 
 if __name__ == '__main__':
     rospy.init_node("Testnode")

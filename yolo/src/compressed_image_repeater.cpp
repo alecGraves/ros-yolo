@@ -63,7 +63,7 @@ class ImageRepeater
     {
         // Set up communications
         _imageSub = _it.subscribe(cameraTopic, 1, &ImageRepeater::ImageCallback, this);
-        _compressedPub = _nh.advertise<std_msgs::UInt8MultiArray>(cameraTopic + "/compressed", 1000);
+        _compressedPub = _nh.advertise<std_msgs::UInt8MultiArray>(cameraTopic + "/jpegbuffer", 1000);
 
         // Set up message for compressed jpeg stream
         _compressed.layout.dim.push_back(std_msgs::MultiArrayDimension());

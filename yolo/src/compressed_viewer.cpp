@@ -28,7 +28,7 @@ int main(int argc, char **argv){
     {
         topicName = argv[1];
     }
-	ros::init(argc, argv, "listener");
+	ros::init(argc, argv, "compressed_image_viewer");
 	ros::NodeHandle n;
 	
 	ros::Subscriber sub = n.subscribe(topicName, 1, imageCB);

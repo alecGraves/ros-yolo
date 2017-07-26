@@ -82,7 +82,7 @@ int main(int argc, char ** argv)
         topicName = argv[1];
     }
 
-    ros::init(argc, argv, "talker");
+    ros::init(argc, argv, "compressed_repeater");
 
     auto ImageRepeater repeater(topicName);
 

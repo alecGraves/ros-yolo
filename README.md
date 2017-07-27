@@ -55,5 +55,5 @@ This package is designed to get camera data from a robot as a jpeg buffer in a m
 
 1. start encoding and publishing images with ```rosrun yolo encoder```
 
-2. start yolo with ```rosrun yolo yolo.py```
+2. start yolo with ```rosrun yolo yolo.py -d -c /PATH/TO/my_classes.txt```
 

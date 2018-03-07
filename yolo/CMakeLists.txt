@@ -15,7 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
 )
 
-find_package(OpenCV REQUIRED)
+find_package(OpenCV 3 REQUIRED)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -158,6 +158,7 @@ add_dependencies(compressed_viewer ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(encoder
+  ${OpenCV_LIBRARIES}
   ${catkin_LIBRARIES}
 )
 target_link_libraries(compressed_repeater
